@@ -1,19 +1,36 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+  - task: TerraformCLI@0
+    displayName: 'Init Terraform'
+    inputs:
+      command: 'init'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  - task: TerraformCLI@0
+    displayName: 'Terraform Plan'
+    inputs:
+      command: 'plan'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/'
+      environmentServiceNameAzureRM: '<your-Azure-service-connection-name>'
+      commandOptions: '-out=tfplan'
+
+  - task: TerraformCLI@0
+    displayName: 'Apply Terraform'
+    inputs:
+      command: 'apply'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/'
+      environmentServiceNameAzureRM: '<your-Azure-service-connection-name>'
+      commandOptions: '-auto-approve tfplan'
+
+  - task: PublishPipelineArtifact@0
+    displayName: 'Publish Terraform state file'
+    inputs:
+      artifactName: 'terraform-state'
+      publishDirectory: '$(System.DefaultWorkingDirectory)/'
+      targetPath: '$(Build.ArtifactStagingDirectory)/terraform-state'
+
